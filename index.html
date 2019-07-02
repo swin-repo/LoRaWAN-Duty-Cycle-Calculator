@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>LoRaWAN Duty Cycle Calculator</title>
+    <link href="css/customstrap.css" rel="stylesheet">
+  </head>
+
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <div class="navbar-collapse justify-content-md-center">
+        <ul class="navbar-nav">
+          <li class="nav-item active">
+            <a class="nav-link" href="#">LoRaWAN Duty Cycle Calculator</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    <main role="main">
+        <div class="jumbotron">
+          <div class="col-sm-8 mx-auto">
+            <p style="text-align: justify;">
+            	This tool can be used to help understand duty cycle limitations when using LoRaWAN technology. It assumes a lot of defaults according to the LoRaWAN specifications such as 
+            	125khz bandwidth, 4/5 code rate and 8 channels. If you are doing any weird stuff such as using less channels as you are targeting a single channel gateway, or you are using
+            	a higher bandwidth this tool isn't accurate and you should manually calculate your air time and duty cycle. Whilst this tool is useful for estimating your air time and duty
+            	cycle before deploying any production ready solutions please check the calculations for accuracy against the current legislation. Usage of this calculator comes without
+            	warranty or guarantee.
+            </p>
+            <br />
+            <p>
+              <h3>Parameters</h3>
+              <form>
+                <div class="form-group">
+                  <label for="txt_payload">Payload Length (bytes)</label>
+                  <input type="number" class="form-control" onkeyup="calc()" id="txt_payload" name="txt_payload" value="8">
+                </div>
+                <div class="form-group">
+                  <label for="txt_sf">Spread Factor</label>
+                  <input type="number" class="form-control" onkeyup="calc()" id="txt_sf" name="txt_sf" value="7" max="12" min="7">
+                </div>
+              </form>
+            </p>
+          </div>
+          <br />
+          <div class="col-sm-8 mx-auto">
+            <p>
+              <h3>Results</h3>
+              <b>Total Airtime:</b> <span id="spn_airtime"> </span> ms<br />
+              <b>Duty Cycle:</b> One message every <span id="spn_dc"> </span> seconds<br />
+              <b>TheThingsNetwork Fair Usage Uplink:</b> One message every <span id="spn_fairusage_uplink"> </span> seconds<br />
+              <b>TheThingsNetwork Fair Usage Downlink:</b> One message every 8640 seconds.<br />
+            </p>
+          </div>
+        </div>
+      </main>
+  </body>
+
+  <script>
+    function calc() {
+      var $sf = parseInt(document.getElementById("txt_sf").value);
+	  var $pl = parseInt(document.getElementById("txt_payload").value);
+
+      if ($sf > 12) {
+        $sf = 12;
+      } else if ($sf < 7) {
+        $sf = 7;
+      }
+
+	  var $crc = 1;
+	  var $cr = 1;
+
+      var $IH = false;
+      var $DE = ($sf >= 11);
+
+      var $sym = (Math.pow(2, $sf) / (125 * 1000)) * 1000; //ms
+      var $preamble = (8 + 4.25) * $sym; //ms
+
+      var $beta = Math.ceil((8 * $pl - 4 * $sf + 28 + 16 * $crc - 20 * $IH) / (4 * ($sf - 2 * $DE)));
+      var $payload = 8 + Math.max($beta * ($cr + 4), 0);
+
+      var $air = $preamble + ($payload * $sym);
+      var $dc = ($air / 1000) * 99;
+      var $fa = Math.floor(30000 / $air);
+      var $fa_uplink = Math.ceil(86400 / $fa);
+      document.getElementById("spn_airtime").textContent=$air.toFixed(2);
+      document.getElementById("spn_dc").textContent=Math.ceil($dc);
+      document.getElementById("spn_fairusage_uplink").textContent=$fa_uplink;
+    }
+    calc();
+  </script>
+
+</html>
